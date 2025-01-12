@@ -1,62 +1,61 @@
-@startuml SmartMedia Component
+@startuml
+participant Component as "SmartMedia"
+participant URL as "URL Handler"
+participant Localhost as "localhost:8080"
+participant Server as "Original Server"
+participant State as "Component State"
 
-' Style configurations
-skinparam classAttributeIconSize 0
-skinparam monochrome true
-skinparam shadowing false
+note over Component: useEffect triggered
+activate Component
 
-' Interfaces
-interface SmartMediaProps {
-    +url: string
-    +alt?: string
-    +className?: string
-    +width?: number
-    +height?: number
-    +loading?: 'lazy' | 'eager'
-}
+Component -> URL: Create URL object\nfrom source
+activate URL
 
-' Classes
-class SmartMedia {
-    -finalUrl: string
-    -mediaType: string
-    -isLoading: boolean
-    -error: string | null
-    +constructor(props: SmartMediaProps)
-    +checkUrlAndType(): Promise<void>
-    -handleLocalhostCheck(): Promise<string>
-    -checkContentType(url: string): Promise<string>
-    +render(): ReactElement
-}
+URL -> URL: Extract pathname
+URL -> URL: Build localhost URL\n(http://127.0.0.1:8080/path)
 
-class URLHandler {
-    -originalUrl: string
-    +constructor(url: string)
-    +getPathname(): string
-    +buildLocalhostUrl(): string
-    +checkUrlAvailability(): Promise<boolean>
-    +getContentType(): Promise<string>
-}
+URL -> Localhost: HEAD request
+activate Localhost
 
-' Enums
-enum MediaType {
-    IMAGE
-    VIDEO
-    UNKNOWN
-}
+alt Localhost responds
+    Localhost --> URL: 200 OK
+    URL -> State: setFinalUrl(localhost URL)
+else Localhost unreachable/404
+    Localhost --> URL: Error/404
+    URL -> State: setFinalUrl(original URL)
+    note right: Fallback to original
+end
+deactivate Localhost
 
-' Relationships
-SmartMedia ..|> SmartMediaProps: implements
-SmartMedia --> URLHandler: uses
-SmartMedia --> MediaType: uses
+URL -> Server: HEAD request for content-type
+activate Server
 
-note right of SmartMedia
-  Component handles both image and video
-  rendering based on content type
-end note
+alt Valid response
+    Server --> URL: content-type header
+    URL -> URL: Check media type
+    alt content-type starts with "image/"
+        URL -> State: setMediaType("image")
+    else content-type starts with "video/"
+        URL -> State: setMediaType("video")
+    else other content-type
+        URL -> State: setError("Unsupported type")
+    end
+else Server error
+    Server --> URL: Error
+    URL -> State: setError("Network error")
+end
+deactivate Server
 
-note right of URLHandler
-  Handles URL transformation and
-  availability checking
-end note
+URL -> State: setIsLoading(false)
+deactivate URL
 
+alt mediaType is "image"
+    Component -> Component: render <img>
+else mediaType is "video"
+    Component -> Component: render <video>
+else error state
+    Component -> Component: render error message
+end
+
+deactivate Component
 @enduml
