@@ -1,0 +1,62 @@
+@startuml SmartMedia Component
+
+' Style configurations
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam shadowing false
+
+' Interfaces
+interface SmartMediaProps {
+    +url: string
+    +alt?: string
+    +className?: string
+    +width?: number
+    +height?: number
+    +loading?: 'lazy' | 'eager'
+}
+
+' Classes
+class SmartMedia {
+    -finalUrl: string
+    -mediaType: string
+    -isLoading: boolean
+    -error: string | null
+    +constructor(props: SmartMediaProps)
+    +checkUrlAndType(): Promise<void>
+    -handleLocalhostCheck(): Promise<string>
+    -checkContentType(url: string): Promise<string>
+    +render(): ReactElement
+}
+
+class URLHandler {
+    -originalUrl: string
+    +constructor(url: string)
+    +getPathname(): string
+    +buildLocalhostUrl(): string
+    +checkUrlAvailability(): Promise<boolean>
+    +getContentType(): Promise<string>
+}
+
+' Enums
+enum MediaType {
+    IMAGE
+    VIDEO
+    UNKNOWN
+}
+
+' Relationships
+SmartMedia ..|> SmartMediaProps: implements
+SmartMedia --> URLHandler: uses
+SmartMedia --> MediaType: uses
+
+note right of SmartMedia
+  Component handles both image and video
+  rendering based on content type
+end note
+
+note right of URLHandler
+  Handles URL transformation and
+  availability checking
+end note
+
+@enduml

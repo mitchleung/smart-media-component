@@ -40,3 +40,12 @@ a {
     color-scheme: dark;
   }
 }
+
+.full-width-media {
+  width: 100%;
+  height: auto;
+}
+
+video.full-width-media {
+  aspect-ratio: 16/9;
+}
